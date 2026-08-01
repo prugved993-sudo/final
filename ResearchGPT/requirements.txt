@@ -3,8 +3,7 @@
 # ===========================
 streamlit==1.46.1
 python-dotenv==1.1.1
-requests==2.32.4
-watchdog==6.0.0
+requests>=2.32.5
 
 # ===========================
 # LangChain
@@ -34,11 +33,11 @@ transformers==4.55.4
 tokenizers==0.21.4
 
 # ===========================
-# Torch (CPU)
+# Torch (let pip choose a compatible version)
 # ===========================
-torch==2.8.0
-torchvision==0.23.0
-torchaudio==2.8.0
+torch
+torchvision
+torchaudio
 
 # ===========================
 # Vector DB
@@ -54,33 +53,33 @@ pypdf==5.9.0
 # ===========================
 # Data
 # ===========================
-numpy==2.3.2
-pandas==2.3.2
-scikit-learn==1.7.1
-scipy==1.16.1
+numpy
+pandas
+scikit-learn
+scipy
 
 # ===========================
 # Whisper
 # ===========================
-openai-whisper==20250625
-ffmpeg-python==0.2.0
-yt-dlp==2025.8.27
+openai-whisper
+ffmpeg-python
+yt-dlp
 
 # ===========================
 # Web Search
 # ===========================
 tavily-python==0.7.11
-beautifulsoup4==4.13.5
-lxml==6.0.1
+beautifulsoup4
+lxml
 
 # ===========================
 # Utilities
 # ===========================
-tiktoken==0.11.0
-xxhash==3.5.0
-uuid-utils==0.11.1
-protobuf==6.32.0
-pillow==11.3.0
-opencv-python==4.12.0.88
-tqdm==4.67.1
-rich==14.1.0
+tiktoken
+xxhash
+uuid-utils
+protobuf
+pillow
+opencv-python-headless
+tqdm
+rich
