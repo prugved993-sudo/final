@@ -1,31 +1,57 @@
+# Core
 streamlit
 python-dotenv
 requests>=2.32.5
+watchdog
 
+# LangChain
 langchain
-langchain-community
 langchain-core
+langchain-community
 langchain-openai
+langchain-mistralai
+langchain-text-splitters
+langgraph
+langsmith
 
+# LLM
+openai
+mistralai
+
+# Vector Database
 chromadb
 
+# Embeddings
+sentence-transformers
+transformers
+torch
+
+# PDF
 pymupdf
 pypdf
 
-sentence-transformers
-
-openai
-
-tiktoken
-
+# Data
 numpy
 pandas
+scikit-learn
+scipy
 
+# Web Search
 beautifulsoup4
 lxml
+tavily-python
 
+# Video
 yt-dlp
-
 ffmpeg-python
+openai-whisper
 
+# Utilities
+tiktoken
+pillow
 opencv-python-headless
+protobuf
+tqdm
+rich
+xxhash
+uuid-utils
