@@ -4,16 +4,15 @@ python-dotenv
 requests>=2.32.5
 watchdog
 
-# LangChain
 langchain
 langchain-core
 langchain-community
 langchain-openai
 langchain-mistralai
 langchain-text-splitters
+langchain-chroma
 langgraph
 langsmith
-
 # LLM
 openai
 mistralai
