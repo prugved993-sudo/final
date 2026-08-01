@@ -24,6 +24,8 @@ chromadb
 sentence-transformers
 transformers
 torch
+torchvision
+torchaudio
 
 # PDF
 pymupdf
