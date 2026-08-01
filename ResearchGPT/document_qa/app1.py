@@ -7,21 +7,15 @@ from dotenv import load_dotenv
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
-
 
 load_dotenv()
 
 
 def run():
-    st.set_page_config(
-        page_title="PDF RAG Chatbot",
-        page_icon="📚",
-        layout="wide"
-    )
 
     st.title("📚 PDF RAG Chatbot")
 
@@ -30,8 +24,8 @@ def run():
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    embedding_model = OllamaEmbeddings(
-        model="nomic-embed-text"
+    embedding_model = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     llm = ChatMistralAI(
