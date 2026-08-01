@@ -20,7 +20,7 @@ def download_youtube_audio(url: str) -> str:
         "nocheckcertificate": True,
         "ignoreerrors": False,
         "geo_bypass": True,
-        "postprocessors": [
+        "postprocessors": [ 
             {
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
@@ -124,7 +124,7 @@ def process_input(source: str):
 
     else:
 
-        st.info("Converting local file...")
+        st.info("Converting local file....")
 
         wav_path = convert_to_wav(source)
 
