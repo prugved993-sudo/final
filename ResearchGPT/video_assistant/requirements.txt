@@ -1,0 +1,55 @@
+# UI
+streamlit>=1.45.0
+
+# LangChain
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-mistralai>=0.2.0
+langchain-huggingface>=0.1.0
+langchain-chroma>=0.1.0
+
+# LLM
+mistralai>=1.5.0
+
+# Embeddings
+sentence-transformers>=3.0.0
+huggingface-hub>=0.24.0
+
+# Vector Database
+chromadb>=0.5.5
+
+# Whisper (Speech-to-Text)
+openai-whisper>=20250625
+torch>=2.3.0
+torchaudio>=2.3.0
+
+# Audio Processing
+ffmpeg-python>=0.2.0
+pydub>=0.25.1
+
+# Translation
+deep-translator>=1.11.4
+
+# YouTube Downloader
+yt-dlp>=2025.6.30
+
+# PDF Export
+reportlab>=4.2.0
+
+# Environment Variables
+python-dotenv>=1.0.1
+
+# Data Processing
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Tokenizer
+tiktoken>=0.7.0
+
+# Utilities
+requests>=2.32.0
+tqdm>=4.67.0
+
+# Optional
+pypdf>=5.0.0
