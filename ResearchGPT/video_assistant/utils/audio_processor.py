@@ -13,46 +13,92 @@ def download_youtube_audio(url: str) -> str:
     output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
 
     ydl_opts = {
+        # Prefer audio-only formats
         "format": "bestaudio/best",
+
         "outtmpl": output_path,
-        "quiet": False,
         "noplaylist": True,
-        "nocheckcertificate": True,
+
+        # Don't stop immediately on minor extraction errors
         "ignoreerrors": False,
-        "geo_bypass": True,
-        "postprocessors": [ 
+
+        # Network/retry settings
+        "retries": 10,
+        "fragment_retries": 10,
+        "file_access_retries": 5,
+
+        # HTTP settings
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/150.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+
+        # Try YouTube clients that are currently supported by yt-dlp
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android_vr", "web_safari", "tv"]
+            }
+        },
+
+        # FFmpeg converts downloaded audio to WAV
+        "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
                 "preferredquality": "192",
             }
         ],
+
+        "quiet": False,
+        "no_warnings": False,
     }
 
     try:
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
             info = ydl.extract_info(url, download=True)
 
-            filename = ydl.prepare_filename(info)
+            if info is None:
+                raise RuntimeError(
+                    "yt-dlp could not extract information from this YouTube URL."
+                )
 
+            filename = ydl.prepare_filename(info)
             filename = os.path.splitext(filename)[0] + ".wav"
 
             if not os.path.exists(filename):
                 raise FileNotFoundError(
-                    f"Downloaded file not found:\n{filename}"
+                    f"Downloaded WAV file not found:\n{filename}"
                 )
 
             return filename
 
-    except Exception as e:
+    except yt_dlp.utils.DownloadError as e:
 
-        st.error("❌ YouTube download failed.")
+        st.error(
+            "❌ YouTube download failed.\n\n"
+            "YouTube rejected the media request (HTTP 403)."
+        )
+
+        st.warning(
+            "Try another public YouTube video. "
+            "If multiple videos fail, yt-dlp/YouTube authentication "
+            "or PO-token requirements may need to be configured."
+        )
 
         st.exception(e)
-
         raise
 
+    except Exception as e:
+
+        st.error("❌ YouTube audio processing failed.")
+        st.exception(e)
+        raise
 
 def convert_to_wav(input_path: str) -> str:
 
