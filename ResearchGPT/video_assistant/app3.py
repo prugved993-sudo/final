@@ -1,7 +1,7 @@
+
 import gc
 import os
 import shutil
-import tempfile
 
 import streamlit as st
 
@@ -40,9 +40,9 @@ def run():
 
     st.markdown(
         """
-Analyze a **YouTube video** or a **local video** using AI.
+Analyze a **local video file** using AI.
 
-Features:
+### Features
 - 🎙 Speech Transcription
 - 📝 Summary
 - ✅ Action Items
@@ -57,73 +57,42 @@ Features:
         ["english", "hinglish"],
     )
 
-    tab1, tab2 = st.tabs(
-        ["🔗 YouTube URL", "📁 Local Video"]
+    st.markdown("---")
+    st.subheader("📁 Upload Local Video")
+
+    uploaded_video = st.file_uploader(
+        "Choose a video file",
+        type=["mp4", "mov", "avi", "mkv", "webm"],
+        key="local_video_uploader",
     )
 
-    # -------------------------------------------------------
-    # YouTube
-    # -------------------------------------------------------
+    if uploaded_video is not None:
 
-    with tab1:
-
-        youtube_url = st.text_input(
-            "Paste YouTube URL"
-        )
+        st.video(uploaded_video)
 
         if st.button(
-            "Analyze YouTube Video",
-            key="youtube"
+            "🎬 Analyze Local Video",
+            key="local",
+            use_container_width=True,
         ):
-
-            if not youtube_url.strip():
-                st.warning("Please enter a YouTube URL.")
-                return
 
             clear_previous_data()
 
-            with st.spinner("Processing video..."):
+            os.makedirs(TEMP_DIR, exist_ok=True)
 
-                result = run_pipeline(
-                    youtube_url,
-                    language,
-                )
+            # Save uploaded video using a temporary file path
+            video_path = os.path.join(
+                TEMP_DIR,
+                os.path.basename(uploaded_video.name),
+            )
 
-            st.session_state["video_result"] = result
-            st.session_state["rag_chain"] = result["rag_chain"]
+            with open(video_path, "wb") as f:
+                f.write(uploaded_video.getbuffer())
 
-    # -------------------------------------------------------
-    # Local Video
-    # -------------------------------------------------------
-
-    with tab2:
-
-        uploaded_video = st.file_uploader(
-            "Upload Video",
-            type=["mp4", "mov", "avi", "mkv"],
-        )
-
-        if uploaded_video is not None:
-
-            st.video(uploaded_video)
-
-            if st.button(
-                "Analyze Local Video",
-                key="local"
-            ):
-
-                clear_previous_data()
-
-                video_path = os.path.join(
-                    TEMP_DIR,
-                    uploaded_video.name,
-                )
-
-                with open(video_path, "wb") as f:
-                    f.write(uploaded_video.getbuffer())
-
-                with st.spinner("Processing video..."):
-
+            try:
+                with st.spinner(
+                    "Processing local video... Please wait."
+                ):
                     result = run_pipeline(
                         video_path,
                         language,
@@ -131,56 +100,85 @@ Features:
 
                 st.session_state["video_result"] = result
                 st.session_state["rag_chain"] = result["rag_chain"]
+                st.session_state["video_source"] = uploaded_video.name
+
+                st.success("Video analysis completed successfully!")
+
+            except Exception as e:
+                st.error(f"Video analysis failed: {e}")
 
     # -------------------------------------------------------
-    # Display Results
+    # Display Analysis Results
     # -------------------------------------------------------
 
     if "video_result" in st.session_state:
 
         result = st.session_state["video_result"]
 
-        st.success("Analysis Completed!")
+        st.markdown("---")
+        st.header("📊 Video Analysis Results")
 
         tab_summary, tab_transcript, tab_chat = st.tabs(
             [
                 "📋 Summary",
                 "📄 Transcript",
-                "💬 Chat",
+                "💬 Chat with Video",
             ]
         )
 
+        # ---------------- Summary ----------------
+
         with tab_summary:
 
-            st.subheader("Summary")
-            st.write(result["summary"])
+            st.subheader("📝 Summary")
+            st.write(result.get("summary", "No summary available."))
 
             st.divider()
 
-            st.subheader("Action Items")
-            st.write(result["action_items"])
+            st.subheader("✅ Action Items")
+            st.write(
+                result.get("action_items", "No action items found.")
+            )
 
             st.divider()
 
-            st.subheader("Key Decisions")
-            st.write(result["key_decisions"])
+            st.subheader("🔑 Key Decisions")
+            st.write(
+                result.get("key_decisions", "No key decisions found.")
+            )
 
             st.divider()
 
-            st.subheader("Open Questions")
-            st.write(result["open_questions"])
+            st.subheader("❓ Open Questions")
+            st.write(
+                result.get("open_questions", "No open questions found.")
+            )
+
+        # ---------------- Transcript ----------------
 
         with tab_transcript:
 
-            st.subheader("Transcript")
+            st.subheader("🎙 Video Transcript")
 
             st.text_area(
-                "",
-                result["transcript"],
+                "Transcript",
+                value=result.get("transcript", ""),
                 height=450,
+                key="video_transcript_display",
             )
 
+        # ---------------- Chat with Video ----------------
+
         with tab_chat:
+
+            if "chat_history" not in st.session_state:
+                st.session_state["chat_history"] = []
+
+            # Display previous chat messages
+            for message in st.session_state["chat_history"]:
+
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
 
             question = st.chat_input(
                 "Ask anything about the video..."
@@ -188,13 +186,33 @@ Features:
 
             if question:
 
+                st.session_state["chat_history"].append(
+                    {
+                        "role": "user",
+                        "content": question,
+                    }
+                )
+
                 with st.chat_message("user"):
                     st.write(question)
 
-                answer = ask_question(
-                    st.session_state["rag_chain"],
-                    question,
-                )
+                try:
+                    with st.spinner("Finding the answer..."):
 
-                with st.chat_message("assistant"):
-                    st.write(answer)
+                        answer = ask_question(
+                            st.session_state["rag_chain"],
+                            question,
+                        )
+
+                    st.session_state["chat_history"].append(
+                        {
+                            "role": "assistant",
+                            "content": answer,
+                        }
+                    )
+
+                    with st.chat_message("assistant"):
+                        st.write(answer)
+
+                except Exception as e:
+                    st.error(f"Unable to answer the question: {e}")
