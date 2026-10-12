@@ -1,3 +1,4 @@
+
 import streamlit as st
 from document_qa import app1
 from deep_research import app2
@@ -43,6 +44,7 @@ if st.session_state.page == "Home":
     with c1:
         st.info("📄 Document QA")
         st.write("Ask questions from PDFs")
+
         if st.button("Explore Document QA"):
             st.session_state.page = "Document QA"
             st.rerun()
@@ -50,13 +52,15 @@ if st.session_state.page == "Home":
     with c2:
         st.info("🔍 Deep Research")
         st.write("Generate AI research reports")
+
         if st.button("Explore Deep Research"):
             st.session_state.page = "Deep Research"
             st.rerun()
 
     with c3:
         st.info("🎥 Video Assistant")
-        st.write("Analyze YouTube videos")
+        st.write("Upload and analyze local video files")
+
         if st.button("Explore Video Assistant"):
             st.session_state.page = "Video Assistant"
             st.rerun()
@@ -68,8 +72,8 @@ if st.session_state.page == "Home":
 
     - 📄 PDF Question Answering
     - 🔍 AI Research Agent
-    - 🎥 Video Understanding
-    - 🤖 OpenAI Powered
+    - 🎥 Local Video Analysis
+    - 🤖 AI-Powered Research
     - ⚡ Fast and Interactive
     """)
 
@@ -81,4 +85,5 @@ elif st.session_state.page == "Deep Research":
     app2.run()
 
 elif st.session_state.page == "Video Assistant":
+    # Analyze uploaded local videos only
     app3.run()
