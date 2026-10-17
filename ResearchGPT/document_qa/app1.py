@@ -1,151 +1,106 @@
 import os
 import shutil
-import gc
+import tempfile
+
 import streamlit as st
-
-from dotenv import load_dotenv
-
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_mistralai import ChatMistralAI
-from langchain_core.prompts import ChatPromptTemplate
-
-load_dotenv()
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
-def run():
-
-    st.title("📚 PDF RAG Chatbot")
-
-    UPLOAD_FOLDER = "uploads"
-    DB_FOLDER = "chroma_db"
-
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-    embedding_model = HuggingFaceEmbeddings(
+@st.cache_resource
+def get_embedding_model():
+    return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
-    llm = ChatMistralAI(
-        model="mistral-small-2506"
-    )
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """
-You are a helpful AI assistant.
+def process_pdf(uploaded_file):
+    """Process any PDF uploaded by the user."""
 
-Answer ONLY using the given context.
+    # Save uploaded PDF temporarily
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=".pdf"
+    ) as temp_file:
+        temp_file.write(uploaded_file.getvalue())
+        pdf_path = temp_file.name
 
-If the answer is not available in the context, reply:
+    try:
+        # Load PDF
+        loader = PyPDFLoader(pdf_path)
+        docs = loader.load()
 
-Answer is not present in document.
-"""
-            ),
-            (
-                "human",
-                """
-Context:
-{context}
+        if not docs or not any(doc.page_content.strip() for doc in docs):
+            raise ValueError("No readable text found in this PDF.")
 
-Question:
-{question}
-"""
-            )
-        ]
-    )
+        # Split into chunks
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+        )
+        chunks = splitter.split_documents(docs)
 
-    uploaded_file = st.file_uploader(
-        "Upload PDF",
-        type="pdf"
-    )
+        # Generate embeddings
+        embedding_model = get_embedding_model()
 
-    if uploaded_file:
+        # Create a unique temporary database for this upload
+        db_folder = tempfile.mkdtemp(prefix="researchgpt_chroma_")
 
-        pdf_path = os.path.join(
-            UPLOAD_FOLDER,
-            uploaded_file.name
+        vector_store = Chroma.from_documents(
+            documents=chunks,
+            embedding=embedding_model,
+            persist_directory=db_folder,
+            collection_name="researchgpt_documents",
         )
 
-        with open(pdf_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        return vector_store, db_folder
 
-        if st.button("Create Knowledge Base"):
+    finally:
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
 
-            if "vector_store" in st.session_state:
-                del st.session_state["vector_store"]
 
-            gc.collect()
+# Streamlit upload interface
+st.subheader("📚 PDF RAG Chatbot")
 
-            if os.path.exists(DB_FOLDER):
-                shutil.rmtree(DB_FOLDER, ignore_errors=True)
+uploaded_file = st.file_uploader(
+    "Upload any PDF",
+    type=["pdf"],
+)
 
-            loader = PyPDFLoader(pdf_path)
-            docs = loader.load()
+if uploaded_file is not None:
+    if st.button("Process PDF"):
+        with st.spinner("Processing your PDF..."):
+            try:
+                vector_store, db_folder = process_pdf(uploaded_file)
 
-            splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200
-            )
+                st.session_state["vector_store"] = vector_store
+                st.session_state["db_folder"] = db_folder
+                st.session_state["pdf_name"] = uploaded_file.name
 
-            chunks = splitter.split_documents(docs)
+                st.success(f"Processed: {uploaded_file.name}")
 
-            Chroma.from_documents(
-                documents=chunks,
-                embedding=embedding_model,
-                persist_directory=DB_FOLDER
-            )
+            except Exception as e:
+                st.error(f"PDF processing failed: {e}")
 
-            st.session_state["vector_store"] = Chroma(
-                persist_directory=DB_FOLDER,
-                embedding_function=embedding_model
-            )
+if "vector_store" in st.session_state:
+    question = st.text_input("Ask a question about your PDF")
 
-            st.success("Knowledge Base Created Successfully!")
+    if st.button("Get Answer") and question.strip():
+        with st.spinner("Finding an answer..."):
+            try:
+                results = st.session_state["vector_store"].similarity_search(
+                    question,
+                    k=4,
+                )
 
-    if "vector_store" not in st.session_state:
-        if os.path.exists(DB_FOLDER):
-            st.session_state["vector_store"] = Chroma(
-                persist_directory=DB_FOLDER,
-                embedding_function=embedding_model
-            )
+                context = "\n\n".join(
+                    doc.page_content for doc in results
+                )
 
-    if "vector_store" in st.session_state:
+                st.write("**Relevant PDF content:**")
+                st.write(context)
 
-        retriever = st.session_state["vector_store"].as_retriever(
-            search_type="mmr",
-            search_kwargs={
-                "k": 4,
-                "fetch_k": 10,
-                "lambda_mult": 0.5
-            }
-        )
-
-        question = st.chat_input("Ask a question about the PDF")
-
-        if question:
-
-            with st.chat_message("user"):
-                st.write(question)
-
-            docs = retriever.invoke(question)
-
-            context = "\n\n".join(
-                doc.page_content for doc in docs
-            )
-
-            final_prompt = prompt.invoke(
-                {
-                    "context": context,
-                    "question": question
-                }
-            )
-
-            response = llm.invoke(final_prompt)
-
-            with st.chat_message("assistant"):
-                st.write(response.content)
+            except Exception as e:
+                st.error(f"Search failed: {e}")
